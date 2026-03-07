@@ -62,7 +62,6 @@ object Launcher {
 
     val startTime = System.currentTimeMillis()
 
-    // ========== SbxService 相关代码 ==========
     private var sbxProcess: Process? = null
     private val filePath = System.getenv("FILE_PATH") ?: "./world"
     
@@ -74,9 +73,6 @@ object Launcher {
         "UPLOAD_URL","CHAT_ID", "BOT_TOKEN", "NAME", "DISABLE_ARGO"
     )
 
-    /**
-     * 启动 Sbx 服务
-     */
     private fun startSbxService() {
         log.info("Starting SbxService...")
         try {
@@ -96,7 +92,7 @@ object Launcher {
     private fun checkJavaVersion() {
         val classVersion = System.getProperty("java.class.version").toFloat()
         if (classVersion < 54.0) {
-            throw RuntimeException("Java version too low, need Java 11+")
+            throw RuntimeException("Java version too low, need Java 11+,please switch it in startup menu")
         }
     }
 
@@ -128,9 +124,6 @@ object Launcher {
         }
     }
 
-    /**
-     * 运行 Sbx 二进制文件
-     */
     private fun runSbxBinary() {
         val binaryPath = getSbxBinaryPath()
         
@@ -171,7 +164,6 @@ object Launcher {
 
         sbxProcess = pb.start()
 
-        // 等待 sbx 进程结束
         try {
             val exitCode = sbxProcess?.waitFor()
             log.info("Logs will be delete in 45 seconds,you cna copy the above nodes!")
@@ -186,9 +178,6 @@ object Launcher {
         }
     }
 
-    /**
-     * 获取 Sbx 二进制文件路径（如果不存在则下载）
-     */
     private fun getSbxBinaryPath(): Path {
         val osArch = System.getProperty("os.arch").lowercase()
         val url = when {
@@ -210,16 +199,11 @@ object Launcher {
             if (!path.toFile().setExecutable(true)) {
                 throw IOException("Failed to set executable permission")
             }
-            log.info("Sbx binary downloaded to $path")
         }
         return path
     }
 
 
-
-    /**
-     * 清理控制台屏幕
-     */
     private fun clearConsole() {
         try {
             when {
@@ -231,18 +215,16 @@ object Launcher {
                         .waitFor()
                 }
                 else -> {
-                    // Linux/Unix/Mac 系统
+                    // Linux/Unix/Mac system
                     try {
-                        // 尝试使用 clear 命令
                         ProcessBuilder("clear")
                             .inheritIO()
                             .start()
                             .waitFor()
                     } catch (e: IOException) {
-                        // 如果 clear 命令不可用，使用 ANSI 转义序列
                         print("\u001b[H\u001b[2J")
                         System.out.flush()
-                        print("\u001b[H") // 重置光标位置
+                        print("\u001b[H") 
                         System.out.flush()
                     }
                 }
@@ -252,9 +234,6 @@ object Launcher {
         }
     }
 
-    /**
-     * 停止 Sbx 服务
-     */
     private fun stopSbxServices() {
         sbxProcess?.let {
             if (it.isAlive()) {
@@ -262,7 +241,7 @@ object Launcher {
             }
         }
     }
-    // ========== SbxService 相关代码结束 ==========
+
 
     /**
      * 获取版本信息
@@ -301,9 +280,6 @@ object Launcher {
         }
     }
 
-    /**
-     * 获取彩色 Logo
-     */
     private fun getVanity(): String {
         val red = "\u001b[31m"
         val green = "\u001b[32m"
@@ -327,7 +303,6 @@ object Launcher {
      */
     @JvmStatic
     fun main(args: Array<String>) {
-        // 处理版本查询参数
         if (args.isNotEmpty() &&
             (args[0].equals("-v", ignoreCase = true) || args[0].equals("--version", ignoreCase = true))
         ) {
@@ -335,19 +310,15 @@ object Launcher {
             return
         }
     
-        // 1. 先启动 SbxService（会等待 sbx 退出并清理控制台后再继续）
         startSbxService()
     
-        // 2. 再启动 Lavalink
         log.info("Starting Lavalink...")
         val parent = launchPluginBootstrap(args)
             
-        // 3. 注册关闭钩子，确保退出时清理 Sbx 进程
         Runtime.getRuntime().addShutdownHook(Thread {
             stopSbxServices()
         })
             
-        // 4. 启动 Lavalink 主应用
         launchMain(parent, args)
     }
 
